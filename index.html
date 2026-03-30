@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>無脊椎動物分類小考（50 題）</title>
 
-<!-- html2canvas -->
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <style>
@@ -13,55 +12,66 @@ body{font-family:Arial,sans-serif;background:#eef3f8;margin:0;}
 .wrap{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:16px;}
 img{max-width:100%;border-radius:12px;margin-bottom:10px;}
 button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
-#ops button{width:48%; display:inline-block;}
+#ops button{width:48%;}
 #nextBtn{width:100%;margin-top:10px;}
 #downloadBtn{width:100%;margin-top:10px;background:#4CAF50;color:white;}
+input{padding:6px;width:200px;}
 </style>
 </head>
 
 <body>
-
 <div class="wrap">
 
 <h2>無脊椎動物分類小考（50 題）</h2>
 <p>總分：<span id="score">0</span> / 100</p>
 <p>進度：<span id="count">0</span> / 50</p>
 
-<!-- 🔹 上方資訊列 -->
 <div style="display:flex; justify-content:space-between; align-items:center;">
-
 <div>
 Student ID:
 <input type="text" id="studentID" placeholder="Enter your Student ID">
 </div>
 
-<!-- 🔥 成績框（可截圖） -->
 <div id="scoreBox" style="
 border:3px solid #4CAF50;
 padding:10px;
 border-radius:10px;
 background:#fff;
-box-shadow:0 0 10px rgba(0,0,0,0.2);
 font-weight:bold;
-min-width:200px;
-">
+min-width:200px;">
 Score Summary<br>
 ID: -<br>
 Latest: 0<br>
 Best: 0
 </div>
-
 </div>
 
 <img id="img">
 <p id="q"></p>
 <div id="ops"></div>
-<p id="res" style="font-weight:bold;"></p>
+<p id="res"></p>
 <p id="exp"></p>
 
 <button id="nextBtn" onclick="next()" disabled>下一題</button>
-<button id="downloadBtn" onclick="downloadPNG()">下載成績證明 PNG</button>
+<button id="downloadBtn" onclick="downloadCertificate()">下載正式成績單 PNG</button>
 
+</div>
+
+<!-- 🔥 成績證書（隱藏區） -->
+<div id="certificate" style="
+position:absolute;
+left:-9999px;
+width:600px;
+padding:30px;
+background:white;
+border:3px solid black;
+font-family:Arial;
+">
+<h2 style="text-align:center;">Invertebrate Biology Quiz Certificate</h2>
+<hr>
+<p id="certID"></p>
+<p id="certScore"></p>
+<p id="certDate"></p>
 </div>
 
 <script>
@@ -69,15 +79,13 @@ Best: 0
 // ===== 題庫 =====
 const categories = ["Porifera","Cnidaria","Echinodermata","Platyhelminthes","Mollusca","Annelida","Nematoda","Arthropoda"];
 let Q=[];
-
 categories.forEach(cat=>{
     for(let i=1;i<=9;i++){
         Q.push({
             img:`images/${cat}_${i}.jpg`,
             q:`此生物分類？（This animal belongs to which phylum?）`,
             ops:categories,
-            ans:categories.indexOf(cat),
-            exp:`${cat}`
+            ans:categories.indexOf(cat)
         });
     }
 });
@@ -89,8 +97,8 @@ function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
 let pool = shuffle([...Q]).slice(0,50);
 let i=0,score=0;
 
-// ===== 更新右上角成績框 =====
-function updateScoreBox(latest, best){
+// ===== 更新顯示 =====
+function updateScoreBox(latest,best){
     const student = document.getElementById("studentID").value || "-";
     document.getElementById("scoreBox").innerHTML = `
         Score Summary<br>
@@ -98,6 +106,16 @@ function updateScoreBox(latest, best){
         Latest: ${latest}<br>
         Best: ${best}
     `;
+}
+
+// ===== 檢查是否有ID =====
+function checkID(){
+    const student = document.getElementById("studentID").value.trim();
+    if(!student){
+        alert("⚠ 請先輸入 Student ID 才能作答！");
+        return false;
+    }
+    return true;
 }
 
 // ===== 載入題目 =====
@@ -113,7 +131,9 @@ function load(){
     q.ops.forEach((o,idx)=>{
         let b=document.createElement("button");
         b.innerText = o;
-        b.onclick = ()=>check(idx);
+        b.onclick = ()=>{
+            if(checkID()) check(idx);
+        };
         document.getElementById("ops").appendChild(b);
     });
 
@@ -125,63 +145,47 @@ function check(idx){
     const q = pool[i];
     if(idx===q.ans){
         score += 2;
-        document.getElementById("res").innerText = "✔ 正確 Correct";
-    } else {
-        document.getElementById("res").innerText = "✘ 錯誤 Wrong";
+        document.getElementById("res").innerText="✔ Correct";
+    }else{
+        document.getElementById("res").innerText="✘ Wrong";
     }
-    document.getElementById("exp").innerText = q.exp;
     document.getElementById("score").innerText = score;
 
     document.querySelectorAll("#ops button").forEach(b=>b.disabled=true);
-    document.getElementById("nextBtn").disabled = false;
+    document.getElementById("nextBtn").disabled=false;
 }
 
 // ===== 下一題 =====
 function next(){
     i++;
-
     if(i>=pool.length){
 
         const student = document.getElementById("studentID").value.trim();
-
-        let prev = 0;
-        if(student){
-            prev = parseInt(localStorage.getItem(student+"_bestScore") || 0);
-        }
+        let prev = parseInt(localStorage.getItem(student+"_best")||0);
 
         let finalBest = prev;
 
-        if(student){
-            if(score > prev){
-                let save = confirm(`新高分 ${score} 分！是否覆蓋原本最佳成績 (${prev})？`);
-                if(save){
-                    localStorage.setItem(student+"_bestScore",score);
-                    finalBest = score;
-                }
-            } else {
-                alert(`本次分數 ${score} 未超過最佳分數 ${prev}`);
-                finalBest = prev;
+        if(score > prev){
+            if(confirm(`新高分 ${score} 分！是否覆蓋舊成績 ${prev}?`)){
+                localStorage.setItem(student+"_best",score);
+                finalBest = score;
             }
         } else {
-            alert(`本次分數：${score}（未輸入 Student ID，不會儲存）`);
+            finalBest = prev;
         }
 
-        // 更新顯示
         updateScoreBox(score, finalBest);
 
-        alert(`測驗完成！\n你的分數：${score}/100`);
+        alert(`測驗完成！\n分數：${score}/100`);
 
-        // 重置
-        i=0;
-        score=0;
+        i=0; score=0;
         pool = shuffle([...Q]).slice(0,50);
     }
-
     load();
 }
 
-// ===== 🔥 下載成績 PNG =====
-function downloadPNG(){
+// ===== 下載正式證書 =====
+function downloadCertificate(){
 
     const student = document.getElementById("studentID").value.trim();
     if(!student){
@@ -189,13 +193,24 @@ function downloadPNG(){
         return;
     }
 
-    html2canvas(document.getElementById("scoreBox")).then(canvas=>{
+    let best = localStorage.getItem(student+"_best");
+    if(!best){
+        alert("尚未有成績紀錄");
+        return;
+    }
+
+    let today = new Date().toISOString().split("T")[0];
+
+    document.getElementById("certID").innerText = "Student ID: " + student;
+    document.getElementById("certScore").innerText = "Score: " + best + " / 100";
+    document.getElementById("certDate").innerText = "Date: " + today;
+
+    html2canvas(document.getElementById("certificate")).then(canvas=>{
         let link = document.createElement("a");
-        link.download = `${student}_score.png`;
+        link.download = `${student}_${best}_certificate.png`;
         link.href = canvas.toDataURL();
         link.click();
     });
-
 }
 
 // 初始化
@@ -203,6 +218,5 @@ updateScoreBox(0,0);
 load();
 
 </script>
-
 </body>
 </html>
