@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>無脊椎動物分類進階 Body Plan 測驗</title>
+<title>Advanced Body Plan Quiz - Invertebrates</title>
 <style>
 body{font-family:Arial,sans-serif;background:#eef3f8;margin:0;}
 .wrap{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:16px;}
@@ -14,68 +14,66 @@ button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
 </head>
 <body>
 <div class="wrap">
-<h2>無脊椎動物分類進階 Body Plan 測驗（3選1, 25 題）</h2>
-<p>分數：<span id="score">0</span> / 100</p>
-<p>題目進度：<span id="count">0</span> / 25</p>
+<h2>Invertebrate Body Plan Quiz (3 Choices, 25 Questions)</h2>
+<p>Score: <span id="score">0</span> / 100</p>
+<p>Question: <span id="count">0</span> / 25</p>
 
 <img id="img">
-<p id="q"></p>
+<p id="q">請根據圖片判斷其特徵？（Based on the image, identify its characteristics.）</p>
 <div id="ops"></div>
 <p id="res" style="font-weight:bold;"></p>
 <p id="exp"></p>
 
-<button id="nextBtn" onclick="next()" disabled>下一題</button>
-<button id="exportCSV" onclick="exportCSV()">匯出 CSV（老師用）</button>
+<button id="nextBtn" onclick="next()" disabled>Next</button>
+<button id="exportCSV" onclick="exportCSV()">Export CSV (Teacher use)</button>
 </div>
 
 <script>
-// ===== 題庫設定 =====
+// ===== Body Plan Features =====
 const bodyplan_features = {
-    "Porifera": {Sym:"No symmetry / 無對稱",Coelom:"Acoelomates / 無體腔",Germ:"Monoloblasty / 單胚層",Dev:"Not belonging / 不屬於"},
-    "Cnidaria": {Sym:"Radial symmetry / 放射對稱",Coelom:"Acoelomates / 無體腔",Germ:"Diploblasty / 雙胚層",Dev:"Not belonging / 不屬於"},
-    "Platyhelminthes": {Sym:"Bilateral symmetry / 雙側對稱",Coelom:"Acoelomates / 無體腔",Germ:"Triploblasty / 三胚層",Dev:"Protostome / 原口動物"},
-    "Nematoda": {Sym:"Bilateral symmetry / 雙側對稱",Coelom:"Pseudocoelomates / 假體腔",Germ:"Triploblasty / 三胚層",Dev:"Protostome / 原口動物"},
-    "Annelida": {Sym:"Bilateral symmetry / 雙側對稱",Coelom:"Coelomates / 真體腔",Germ:"Triploblasty / 三胚層",Dev:"Protostome / 原口動物"},
-    "Mollusca": {Sym:"Bilateral symmetry / 雙側對稱",Coelom:"Coelomates / 真體腔",Germ:"Triploblasty / 三胚層",Dev:"Protostome / 原口動物"},
-    "Arthropoda": {Sym:"Bilateral symmetry / 雙側對稱",Coelom:"Coelomates / 真體腔",Germ:"Triploblasty / 三胚層",Dev:"Protostome / 原口動物"},
-    "Echinodermata": {Sym:"Radial symmetry / 放射對稱 (成人)",Coelom:"Coelomates / 真體腔",Germ:"Triploblasty / 三胚層",Dev:"Deuterostome / 後口動物"}
+    "Porifera": {Sym:"No symmetry",Coelom:"Acoelomates",Germ:"Not belonging",Dev:"Not belonging"},
+    "Cnidaria": {Sym:"Radial",Coelom:"Acoelomates",Germ:"Diploblasty",Dev:"Not belonging"},
+    "Platyhelminthes": {Sym:"Bilateral",Coelom:"Acoelomates",Germ:"Triploblasty",Dev:"Protostome"},
+    "Nematoda": {Sym:"Bilateral",Coelom:"Pseudocoelomates",Germ:"Triploblasty",Dev:"Protostome"},
+    "Annelida": {Sym:"Bilateral",Coelom:"Coelomates",Germ:"Triploblasty",Dev:"Protostome"},
+    "Mollusca": {Sym:"Bilateral",Coelom:"Coelomates",Germ:"Triploblasty",Dev:"Protostome"},
+    "Arthropoda": {Sym:"Bilateral",Coelom:"Coelomates",Germ:"Triploblasty",Dev:"Protostome"},
+    "Echinodermata": {Sym:"Radial",Coelom:"Coelomates",Germ:"Triploblasty",Dev:"Deuterostome"}
 };
 
-// ===== 建立題庫 =====
+// ===== Generate Question Pool =====
 let Q=[];
 const categories = Object.keys(bodyplan_features);
 categories.forEach(cat=>{
     for(let i=1;i<=9;i++){
-        let feature_keys = Object.keys(bodyplan_features[cat]);
-        feature_keys.forEach(fk=>{
+        Object.keys(bodyplan_features[cat]).forEach(fk=>{
             let correct = bodyplan_features[cat][fk];
-            // 隨機選2個錯誤答案
-            let wrong = [];
-            let all = Array.from(new Set(Object.values(bodyplan_features).map(x=>x[fk]))).filter(x=>x!==correct);
-            while(wrong.length<2){
-                let w = all[Math.floor(Math.random()*all.length)];
-                if(!wrong.includes(w)) wrong.push(w);
-            }
-            let ops = shuffle([correct,...wrong]);
+            let all = [];
+            if(fk==="Sym") all=["Radial","Bilateral","No symmetry"];
+            if(fk==="Coelom") all=["Coelomates","Pseudocoelomates","Acoelomates"];
+            if(fk==="Germ") all=["Diploblasty","Triploblasty","Not belonging"];
+            if(fk==="Dev") all=["Protostome","Deuterostome","Not belonging"];
+            // shuffle 3 choices
+            let ops = shuffle(all);
             Q.push({
                 img:`images/${cat}_${i}.jpg`,
-                q:`請根據圖片判斷其 ${fk}？（Based on the image, identify its ${fk}）`,
+                q:"請根據圖片判斷其特徵？（Based on the image, identify its characteristics.）",
                 ops: ops,
                 ans: ops.indexOf(correct),
-                exp:`正確答案: ${correct}`
+                exp:`Correct answer: ${correct}`
             });
         });
     }
 });
 
-// ===== 隨機抽 25 題 =====
+// ===== Random 25 Questions =====
 function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
 let pool = shuffle([...Q]).slice(0,25);
 
-let i=0,score=0,total=0;
+let i=0,score=0;
 let resultLog=[];
 
-// ===== 題目載入 =====
+// ===== Load Question =====
 function load(){
     const q = pool[i];
     document.getElementById("img").src = q.img;
@@ -94,35 +92,35 @@ function load(){
     document.getElementById("count").innerText = i+1;
 }
 
-// ===== 作答檢查 =====
+// ===== Check Answer =====
 function check(idx){
     const q = pool[i];
     let correct = idx===q.ans;
-    if(correct) score += 4; // 每題4分
-    document.getElementById("res").innerText = correct ? "✔ 正確 Correct" : "✘ 錯誤 Wrong";
+    if(correct) score +=4;
+    document.getElementById("res").innerText = correct ? "✔ Correct" : "✘ Wrong";
     document.getElementById("exp").innerText = q.exp;
     document.getElementById("score").innerText = score;
     document.getElementById("nextBtn").disabled = false;
 
-    resultLog.push({題號:i+1,圖片:q.img,答案:q.ops[q.ans],選擇:q.ops[idx],是否正確:correct,分數:correct?4:0});
+    resultLog.push({Question:i+1,Image:q.img,Answer:q.ops[q.ans],Selected:q.ops[idx],Correct:correct,Score:correct?4:0});
 
     document.querySelectorAll("#ops button").forEach(b=>b.disabled=true);
 }
 
-// ===== 下一題 =====
+// ===== Next Question =====
 function next(){
     i++;
     if(i>=pool.length){
-        alert(`測驗完成！\n你的最終分數：${score}/100`);
+        alert(`Quiz completed!\nYour final score: ${score}/100`);
     } else load();
 }
 
-// ===== 匯出 CSV =====
+// ===== Export CSV =====
 function exportCSV(){
-    if(resultLog.length===0){alert("尚未作答"); return;}
-    let csv="題號,圖片,正確答案,學生選擇,是否正確,分數\n";
+    if(resultLog.length===0){alert("No answers yet"); return;}
+    let csv="Question,Image,Correct Answer,Selected,Correct,Score\n";
     resultLog.forEach(r=>{
-        csv+=`${r.題號},${r.圖片},${r.答案},${r.選擇},${r.是否正確},${r.分數}\n`;
+        csv+=`${r.Question},${r.Image},${r.Answer},${r.Selected},${r.Correct},${r.Score}\n`;
     });
     let blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
     let link = document.createElement("a");
@@ -131,7 +129,7 @@ function exportCSV(){
     link.click();
 }
 
-// 初始載入第一題
+// 初始載入
 load();
 </script>
 </body>
