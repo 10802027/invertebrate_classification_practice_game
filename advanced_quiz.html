@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Invertebrate Body Plan Quiz - Student Version</title>
+<title>無脊椎動物特徵小考（25 題）</title>
 
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
@@ -14,19 +14,18 @@ img{max-width:100%;border-radius:12px;margin-bottom:10px;}
 button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
 #nextBtn{width:100%;margin-top:10px;}
 #downloadBtn{width:100%;margin-top:10px;background:#4CAF50;color:white;}
+input{padding:6px;width:200px;}
 </style>
 </head>
 
 <body>
 <div class="wrap">
 
-<h2>無脊椎動物特徵小考（三選一 25 題）</h2>
+<h2>無脊椎動物特徵小考（25 題）</h2>
 <p>總分：<span id="score">0</span> / 100</p>
 <p>進度：<span id="count">0</span> / 25</p>
 
-<!-- 🔹 Student + 成績框 -->
 <div style="display:flex; justify-content:space-between; align-items:center;">
-
 <div>
 Student ID:
 <input type="text" id="studentID" placeholder="Enter your Student ID">
@@ -37,31 +36,45 @@ border:3px solid #4CAF50;
 padding:10px;
 border-radius:10px;
 background:#fff;
-box-shadow:0 0 10px rgba(0,0,0,0.2);
 font-weight:bold;
-min-width:200px;
-">
+min-width:200px;">
 Score Summary<br>
 ID: -<br>
 Latest: 0<br>
 Best: 0
 </div>
-
 </div>
 
 <img id="img">
 <p id="q">請根據圖片判斷其特徵？（Based on the image, identify its characteristics.）</p>
 <div id="ops"></div>
-<p id="res" style="font-weight:bold;"></p>
+<p id="res"></p>
 
 <button id="nextBtn" onclick="next()" disabled>Next</button>
-<button id="downloadBtn" onclick="downloadPNG()">下載成績證明 PNG</button>
+<button id="downloadBtn" onclick="downloadCertificate()">下載正式成績單 PNG</button>
 
+</div>
+
+<!-- 🔥 證書區 -->
+<div id="certificate" style="
+position:absolute;
+left:-9999px;
+width:600px;
+padding:30px;
+background:white;
+border:3px solid black;
+font-family:Arial;
+">
+<h2 style="text-align:center;">Invertebrate Body Plan Quiz Certificate</h2>
+<hr>
+<p id="certID"></p>
+<p id="certScore"></p>
+<p id="certDate"></p>
 </div>
 
 <script>
 
-// ===== Body Plan Features =====
+// ===== 特徵資料 =====
 const bodyplan_features = {
     "Porifera": {Sym:"Asymmetry",Coelom:"Acoelomates",Germ:"Not belonging",Dev:"Not belonging"},
     "Cnidaria": {Sym:"Radial",Coelom:"Acoelomates",Germ:"Diploblasty",Dev:"Not belonging"},
@@ -70,9 +83,10 @@ const bodyplan_features = {
     "Annelida": {Sym:"Bilateral",Coelom:"Coelomates",Germ:"Triploblasty",Dev:"Protostome"},
     "Mollusca": {Sym:"Bilateral",Coelom:"Coelomates",Germ:"Triploblasty",Dev:"Protostome"},
     "Arthropoda": {Sym:"Bilateral",Coelom:"Coelomates",Germ:"Triploblasty",Dev:"Protostome"},
-    "Echinodermata": {Sym:"Bilateral",Coelom:"Coelomates",Germ:"Triploblasty",Dev:"Deuterostome"}
+    "Echinodermata": {Sym:"Radial",Coelom:"Coelomates",Germ:"Triploblasty",Dev:"Deuterostome"}
 };
 
+// ===== 工具 =====
 function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
 
 // ===== 題庫 =====
@@ -81,25 +95,24 @@ const categories = Object.keys(bodyplan_features);
 const counts = [3,3,3,3,3,3,3,4];
 
 categories.forEach((cat,idx)=>{
-    let num = counts[idx];
-    let indices = shuffle([...Array(9).keys()].map(x=>x+1)).slice(0,num);
+    let indices = shuffle([...Array(9).keys()].map(x=>x+1)).slice(0,counts[idx]);
 
     indices.forEach(i=>{
         Object.keys(bodyplan_features[cat]).forEach(fk=>{
             let correct = bodyplan_features[cat][fk];
-            let all = [];
 
-            if(fk==="Sym") all=["Radial","Bilateral","Asymmetry"];
-            if(fk==="Coelom") all=["Coelomates","Pseudocoelomates","Acoelomates"];
-            if(fk==="Germ") all=["Diploblasty","Triploblasty","Not belonging"];
-            if(fk==="Dev") all=["Protostome","Deuterostome","Not belonging"];
+            let ops=[];
+            if(fk==="Sym") ops=["Radial","Bilateral","Asymmetry"];
+            if(fk==="Coelom") ops=["Coelomates","Pseudocoelomates","Acoelomates"];
+            if(fk==="Germ") ops=["Diploblasty","Triploblasty","Not belonging"];
+            if(fk==="Dev") ops=["Protostome","Deuterostome","Not belonging"];
 
-            let ops = shuffle(all);
+            ops = shuffle(ops);
 
             Q.push({
                 img:`images/${cat}_${i}.jpg`,
-                ops: ops,
-                ans: ops.indexOf(correct)
+                ops:ops,
+                ans:ops.indexOf(correct)
             });
         });
     });
@@ -108,9 +121,8 @@ categories.forEach((cat,idx)=>{
 // ===== 初始化 =====
 let pool = shuffle(Q).slice(0,25);
 let i=0,score=0;
-let bestScore=0;
 
-// ===== 更新成績框 =====
+// ===== 更新顯示 =====
 function updateScoreBox(latest,best){
     const student = document.getElementById("studentID").value || "-";
     document.getElementById("scoreBox").innerHTML = `
@@ -119,6 +131,16 @@ function updateScoreBox(latest,best){
         Latest: ${latest}<br>
         Best: ${best}
     `;
+}
+
+// ===== 檢查 ID =====
+function checkID(){
+    const student = document.getElementById("studentID").value.trim();
+    if(!student){
+        alert("⚠ 請先輸入 Student ID！");
+        return false;
+    }
+    return true;
 }
 
 // ===== 載入題目 =====
@@ -132,7 +154,9 @@ function load(){
     q.ops.forEach((o,idx)=>{
         let b=document.createElement("button");
         b.innerText = o;
-        b.onclick = ()=>check(idx);
+        b.onclick = ()=>{
+            if(checkID()) check(idx);
+        };
         document.getElementById("ops").appendChild(b);
     });
 
@@ -161,57 +185,54 @@ function next(){
     if(i>=pool.length){
 
         const student = document.getElementById("studentID").value.trim();
-
-        let prev = 0;
-        if(student){
-            prev = parseInt(localStorage.getItem(student+"_advBest") || 0);
-        }
+        let prev = parseInt(localStorage.getItem(student+"_advBest")||0);
 
         let finalBest = prev;
 
-        if(student){
-            if(score > prev){
-                let save = confirm(`New high score ${score}! Replace previous (${prev})?`);
-                if(save){
-                    localStorage.setItem(student+"_advBest",score);
-                    finalBest = score;
-                }
-            } else {
-                alert(`Score ${score} did not exceed best ${prev}`);
-                finalBest = prev;
+        if(score > prev){
+            if(confirm(`New high score ${score}! Replace ${prev}?`)){
+                localStorage.setItem(student+"_advBest",score);
+                finalBest = score;
             }
+        } else {
+            finalBest = prev;
         }
 
         updateScoreBox(score, finalBest);
 
         alert(`Quiz completed!\nScore: ${score}/100`);
 
-        i=0;
-        score=0;
+        i=0; score=0;
         pool = shuffle(Q).slice(0,25);
     }
 
     load();
 }
 
-// ===== 下載 PNG（用最佳分數命名）=====
-function downloadPNG(){
+// ===== 下載證書 =====
+function downloadCertificate(){
 
     const student = document.getElementById("studentID").value.trim();
     if(!student){
-        alert("Please enter Student ID");
+        alert("請輸入 Student ID");
         return;
     }
 
     let best = localStorage.getItem(student+"_advBest");
     if(!best){
-        alert("No record yet");
+        alert("尚未完成測驗");
         return;
     }
 
-    html2canvas(document.getElementById("scoreBox")).then(canvas=>{
+    let today = new Date().toISOString().split("T")[0];
+
+    document.getElementById("certID").innerText = "Student ID: " + student;
+    document.getElementById("certScore").innerText = "Score: " + best + " / 100";
+    document.getElementById("certDate").innerText = "Date: " + today;
+
+    html2canvas(document.getElementById("certificate")).then(canvas=>{
         let link = document.createElement("a");
-        link.download = `${student}_${best}.png`; // ⭐ 關鍵：用最佳分數
+        link.download = `${student}_${best}_certificate.png`;
         link.href = canvas.toDataURL();
         link.click();
     });
