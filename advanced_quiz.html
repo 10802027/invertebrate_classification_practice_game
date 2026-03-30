@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>無脊椎動物分類進階圖片判讀測驗</title>
+<title>無脊椎動物分類進階 Body Plan 測驗</title>
 <style>
 body{font-family:Arial,sans-serif;background:#eef3f8;margin:0;}
 .wrap{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:16px;}
@@ -14,7 +14,7 @@ button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
 </head>
 <body>
 <div class="wrap">
-<h2>無脊椎動物分類進階圖片判讀測驗（中英對照 25 題）</h2>
+<h2>無脊椎動物分類進階 Body Plan 測驗（3選1, 25 題）</h2>
 <p>分數：<span id="score">0</span> / 100</p>
 <p>題目進度：<span id="count">0</span> / 25</p>
 
@@ -29,30 +29,41 @@ button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
 </div>
 
 <script>
-// ===== 題庫 =====
-const categories = ["Porifera","Cnidaria","Echinodermata","Platyhelminthes","Mollusca","Annelida","Nematoda","Arthropoda"];
-const features = {
-    "Porifera":["孔洞海綿 / Pores and canals","多孔且柔軟 / Soft and porous","固定附著 / Sessile","無明顯器官 / No organs"],
-    "Cnidaria":["水母傘狀 / Bell-shaped","刺細胞 / Stinging cells","觸手 / Tentacles","水螅型態 / Polyp form"],
-    "Echinodermata":["星形對稱 / Radial symmetry","棘皮 / Spiny skin","口在下方 / Mouth below","水管系統 / Water vascular system"],
-    "Platyhelminthes":["扁平 / Flat body","無體腔 / Acoelomate","柔軟 / Soft","蠕蟲型態 / Worm-like"],
-    "Mollusca":["有外殼 / Shell present","足 / Muscular foot","內臟囊 / Visceral mass","觸鬚 / Tentacles on head"],
-    "Annelida":["環節 / Segmented body","柔軟 / Soft","管狀 / Tubular","蠕蟲型態 / Worm-like"],
-    "Nematoda":["圓形 / Round body","無分節 / Unsegmented","柔軟 / Soft","蠕蟲型態 / Worm-like"],
-    "Arthropoda":["外骨骼 / Exoskeleton","分節肢 / Segmented appendages","節肢 / Jointed limbs","頭胸腹分節 / Head-thorax-abdomen"]
+// ===== 題庫設定 =====
+const bodyplan_features = {
+    "Porifera": {Sym:"No symmetry / 無對稱",Coelom:"Acoelomates / 無體腔",Germ:"Monoloblasty / 單胚層",Dev:"Not belonging / 不屬於"},
+    "Cnidaria": {Sym:"Radial symmetry / 放射對稱",Coelom:"Acoelomates / 無體腔",Germ:"Diploblasty / 雙胚層",Dev:"Not belonging / 不屬於"},
+    "Platyhelminthes": {Sym:"Bilateral symmetry / 雙側對稱",Coelom:"Acoelomates / 無體腔",Germ:"Triploblasty / 三胚層",Dev:"Protostome / 原口動物"},
+    "Nematoda": {Sym:"Bilateral symmetry / 雙側對稱",Coelom:"Pseudocoelomates / 假體腔",Germ:"Triploblasty / 三胚層",Dev:"Protostome / 原口動物"},
+    "Annelida": {Sym:"Bilateral symmetry / 雙側對稱",Coelom:"Coelomates / 真體腔",Germ:"Triploblasty / 三胚層",Dev:"Protostome / 原口動物"},
+    "Mollusca": {Sym:"Bilateral symmetry / 雙側對稱",Coelom:"Coelomates / 真體腔",Germ:"Triploblasty / 三胚層",Dev:"Protostome / 原口動物"},
+    "Arthropoda": {Sym:"Bilateral symmetry / 雙側對稱",Coelom:"Coelomates / 真體腔",Germ:"Triploblasty / 三胚層",Dev:"Protostome / 原口動物"},
+    "Echinodermata": {Sym:"Radial symmetry / 放射對稱 (成人)",Coelom:"Coelomates / 真體腔",Germ:"Triploblasty / 三胚層",Dev:"Deuterostome / 後口動物"}
 };
 
-// ===== 生成題庫 =====
+// ===== 建立題庫 =====
 let Q=[];
+const categories = Object.keys(bodyplan_features);
 categories.forEach(cat=>{
     for(let i=1;i<=9;i++){
-        let ops = shuffle(features[cat]); // 隨機選出4個選項
-        Q.push({
-            img:`images/${cat}_${i}.jpg`,
-            q:`請根據圖片選出最符合的分類或特徵（Based on the image, select the most appropriate phylum/feature）`,
-            ops: ops,
-            ans: features[cat].indexOf(ops[0]), // 第一個作為正確答案
-            exp:`${cat} → 正確特徵: ${features[cat][0]}`
+        let feature_keys = Object.keys(bodyplan_features[cat]);
+        feature_keys.forEach(fk=>{
+            let correct = bodyplan_features[cat][fk];
+            // 隨機選2個錯誤答案
+            let wrong = [];
+            let all = Array.from(new Set(Object.values(bodyplan_features).map(x=>x[fk]))).filter(x=>x!==correct);
+            while(wrong.length<2){
+                let w = all[Math.floor(Math.random()*all.length)];
+                if(!wrong.includes(w)) wrong.push(w);
+            }
+            let ops = shuffle([correct,...wrong]);
+            Q.push({
+                img:`images/${cat}_${i}.jpg`,
+                q:`請根據圖片判斷其 ${fk}？（Based on the image, identify its ${fk}）`,
+                ops: ops,
+                ans: ops.indexOf(correct),
+                exp:`正確答案: ${correct}`
+            });
         });
     }
 });
@@ -86,20 +97,14 @@ function load(){
 // ===== 作答檢查 =====
 function check(idx){
     const q = pool[i];
-    let correct=false;
-    if(idx===0){ // 第一個作為正確答案
-        score += 4; // 每題4分
-        document.getElementById("res").innerText = "✔ 正確 Correct";
-        correct=true;
-    } else {
-        document.getElementById("res").innerText = "✘ 錯誤 Wrong";
-    }
+    let correct = idx===q.ans;
+    if(correct) score += 4; // 每題4分
+    document.getElementById("res").innerText = correct ? "✔ 正確 Correct" : "✘ 錯誤 Wrong";
     document.getElementById("exp").innerText = q.exp;
     document.getElementById("score").innerText = score;
     document.getElementById("nextBtn").disabled = false;
 
-    // 紀錄結果
-    resultLog.push({題號:i+1,圖片:q.img,答案:q.ops[0],選擇:q.ops[idx],是否正確:correct,分數:correct?4:0});
+    resultLog.push({題號:i+1,圖片:q.img,答案:q.ops[q.ans],選擇:q.ops[idx],是否正確:correct,分數:correct?4:0});
 
     document.querySelectorAll("#ops button").forEach(b=>b.disabled=true);
 }
@@ -109,12 +114,10 @@ function next(){
     i++;
     if(i>=pool.length){
         alert(`測驗完成！\n你的最終分數：${score}/100`);
-    } else {
-        load();
-    }
+    } else load();
 }
 
-// ===== CSV 匯出 =====
+// ===== 匯出 CSV =====
 function exportCSV(){
     if(resultLog.length===0){alert("尚未作答"); return;}
     let csv="題號,圖片,正確答案,學生選擇,是否正確,分數\n";
@@ -124,11 +127,11 @@ function exportCSV(){
     let blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
     let link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "invertebrate_quiz_results.csv";
+    link.download = "bodyplan_quiz_results.csv";
     link.click();
 }
 
-// 初始題目
+// 初始載入第一題
 load();
 </script>
 </body>
