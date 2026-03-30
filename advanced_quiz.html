@@ -26,7 +26,6 @@ input{padding:5px;width:200px;margin-bottom:10px;}
 <p id="res" style="font-weight:bold;"></p>
 
 <button id="nextBtn" onclick="next()" disabled>Next</button>
-<button id="exportCSV" onclick="exportCSV()">Export CSV (Student ID)</button>
 </div>
 
 <script>
@@ -125,21 +124,6 @@ function next(){
     } else load();
 }
 
-// ===== Export CSV =====
-function exportCSV(){
-    const student = document.getElementById("studentID").value || "Unknown";
-    if(resultLog.length===0){alert("No answers yet"); return;}
-    let now = new Date().toISOString();
-    let csv="StudentID,DateTime,TotalScore,Question,Image,Correct Answer,Selected,Correct,Score,Type\n";
-    resultLog.forEach(r=>{
-        csv+=`${student},${now},${score},${r.Question},${r.Image},${r.Answer},${r.Selected},${r.Correct},${r.Score},${r.Type}\n`;
-    });
-    let blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
-    let link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `bodyplan_quiz_${student}_${now}.csv`;
-    link.click();
-}
 
 // 初始載入
 load();
