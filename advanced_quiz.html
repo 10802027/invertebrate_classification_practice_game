@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>無脊椎動物分類進階圖片判讀測驗</title>
+<style>
+body{font-family:Arial,sans-serif;background:#eef3f8;margin:0;}
+.wrap{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:16px;}
+img{max-width:100%;border-radius:12px;margin-bottom:10px;}
+button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
+#nextBtn{width:100%;margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h2>無脊椎動物分類進階圖片判讀測驗（中英對照 25 題）</h2>
+<p>分數：<span id="score">0</span> / 100</p>
+<p>題目進度：<span id="count">0</span> / 25</p>
+
+<img id="img">
+<p id="q"></p>
+<div id="ops"></div>
+<p id="res" style="font-weight:bold;"></p>
+<p id="exp"></p>
+
+<button id="nextBtn" onclick="next()" disabled>下一題</button>
+<button id="exportCSV" onclick="exportCSV()">匯出 CSV（老師用）</button>
+</div>
+
+<script>
+// ===== 題庫 =====
+const categories = ["Porifera","Cnidaria","Echinodermata","Platyhelminthes","Mollusca","Annelida","Nematoda","Arthropoda"];
+const features = {
+    "Porifera":["孔洞海綿 / Pores and canals","多孔且柔軟 / Soft and porous","固定附著 / Sessile","無明顯器官 / No organs"],
+    "Cnidaria":["水母傘狀 / Bell-shaped","刺細胞 / Stinging cells","觸手 / Tentacles","水螅型態 / Polyp form"],
+    "Echinodermata":["星形對稱 / Radial symmetry","棘皮 / Spiny skin","口在下方 / Mouth below","水管系統 / Water vascular system"],
+    "Platyhelminthes":["扁平 / Flat body","無體腔 / Acoelomate","柔軟 / Soft","蠕蟲型態 / Worm-like"],
+    "Mollusca":["有外殼 / Shell present","足 / Muscular foot","內臟囊 / Visceral mass","觸鬚 / Tentacles on head"],
+    "Annelida":["環節 / Segmented body","柔軟 / Soft","管狀 / Tubular","蠕蟲型態 / Worm-like"],
+    "Nematoda":["圓形 / Round body","無分節 / Unsegmented","柔軟 / Soft","蠕蟲型態 / Worm-like"],
+    "Arthropoda":["外骨骼 / Exoskeleton","分節肢 / Segmented appendages","節肢 / Jointed limbs","頭胸腹分節 / Head-thorax-abdomen"]
+};
+
+// ===== 生成題庫 =====
+let Q=[];
+categories.forEach(cat=>{
+    for(let i=1;i<=9;i++){
+        let ops = shuffle(features[cat]); // 隨機選出4個選項
+        Q.push({
+            img:`images/${cat}_${i}.jpg`,
+            q:`請根據圖片選出最符合的分類或特徵（Based on the image, select the most appropriate phylum/feature）`,
+            ops: ops,
+            ans: features[cat].indexOf(ops[0]), // 第一個作為正確答案
+            exp:`${cat} → 正確特徵: ${features[cat][0]}`
+        });
+    }
+});
+
+// ===== 隨機抽 25 題 =====
+function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
+let pool = shuffle([...Q]).slice(0,25);
+
+let i=0,score=0,total=0;
+let resultLog=[];
+
+// ===== 題目載入 =====
+function load(){
+    const q = pool[i];
+    document.getElementById("img").src = q.img;
+    document.getElementById("q").innerText = q.q;
+    document.getElementById("ops").innerHTML = "";
+    document.getElementById("res").innerText = "";
+    document.getElementById("exp").innerText = "";
+    document.getElementById("nextBtn").disabled = true;
+
+    q.ops.forEach((o,idx)=>{
+        let b=document.createElement("button");
+        b.innerText = o;
+        b.onclick = ()=>check(idx);
+        document.getElementById("ops").appendChild(b);
+    });
+    document.getElementById("count").innerText = i+1;
+}
+
+// ===== 作答檢查 =====
+function check(idx){
+    const q = pool[i];
+    let correct=false;
+    if(idx===0){ // 第一個作為正確答案
+        score += 4; // 每題4分
+        document.getElementById("res").innerText = "✔ 正確 Correct";
+        correct=true;
+    } else {
+        document.getElementById("res").innerText = "✘ 錯誤 Wrong";
+    }
+    document.getElementById("exp").innerText = q.exp;
+    document.getElementById("score").innerText = score;
+    document.getElementById("nextBtn").disabled = false;
+
+    // 紀錄結果
+    resultLog.push({題號:i+1,圖片:q.img,答案:q.ops[0],選擇:q.ops[idx],是否正確:correct,分數:correct?4:0});
+
+    document.querySelectorAll("#ops button").forEach(b=>b.disabled=true);
+}
+
+// ===== 下一題 =====
+function next(){
+    i++;
+    if(i>=pool.length){
+        alert(`測驗完成！\n你的最終分數：${score}/100`);
+    } else {
+        load();
+    }
+}
+
+// ===== CSV 匯出 =====
+function exportCSV(){
+    if(resultLog.length===0){alert("尚未作答"); return;}
+    let csv="題號,圖片,正確答案,學生選擇,是否正確,分數\n";
+    resultLog.forEach(r=>{
+        csv+=`${r.題號},${r.圖片},${r.答案},${r.選擇},${r.是否正確},${r.分數}\n`;
+    });
+    let blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
+    let link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "invertebrate_quiz_results.csv";
+    link.click();
+}
+
+// 初始題目
+load();
+</script>
+</body>
+</html>
