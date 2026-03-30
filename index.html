@@ -3,212 +3,95 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>無脊椎動物分類教學平台（最終穩定版）</title>
-
+<title>無脊椎動物分類教學遊戲（72題真實圖片版）</title>
 <style>
-body {
-  font-family: Arial;
-  background:#eef3f8;
-  margin:0;
-}
-.wrap {
-  max-width:900px;
-  margin:20px auto;
-  background:#fff;
-  padding:20px;
-  border-radius:16px;
-  box-shadow:0 6px 20px rgba(0,0,0,0.1);
-}
-img {
-  max-width:100%;
-  border-radius:12px;
-  margin-bottom:10px;
-}
-button {
-  margin:5px;
-  padding:10px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-}
-.opt {
-  display:block;
-  width:100%;
-}
-.stats {
-  background:#f1f5fb;
-  padding:10px;
-  border-radius:10px;
-  margin-bottom:10px;
-}
+body{font-family:Arial,sans-serif;background:#eef3f8;margin:0;}
+.wrap{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:16px;}
+img{max-width:100%;border-radius:12px;margin-bottom:10px;}
+button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:100%;}
+h2,h3{margin-bottom:10px;}
+#ops button{width:48%; display:inline-block;}
 </style>
 </head>
-
 <body>
 
 <div class="wrap">
-<h2>無脊椎動物分類教學平台（中英對照）</h2>
-
-<div class="stats">
-分數：<span id="score">0</span> ｜ 題數：<span id="count">0</span> ｜ 正確率：<span id="acc">0%</span>
-</div>
+<h2>無脊椎動物分類教學遊戲（中英對照 72 題）</h2>
+<p>分數：<span id="score">0</span> / 72</p>
+<p>答題進度：<span id="count">0</span> / 72</p>
 
 <img id="img">
 <p id="q"></p>
 <div id="ops"></div>
-<p id="res"></p>
+<p id="res" style="font-weight:bold;"></p>
 <p id="exp"></p>
 
 <button onclick="next()">下一題</button>
-<button onclick="downloadCSV()">下載紀錄</button>
 </div>
 
 <script>
+// ===== 真實圖片題庫 =====
+const Q = [];
 
-// ===== 題庫 =====
-const Q = [
-{
-img:"https://upload.wikimedia.org/wikipedia/commons/6/6e/Spongia_officinalis.jpg",
-q:"此生物分類？",
-ops:["有孔動物 Porifera","刺絲胞動物 Cnidaria","環節動物 Annelida","節肢動物 Arthropoda"],
-ans:0,
-exp:"Porifera：無真正組織、多孔結構"
-},
-{
-img:"https://upload.wikimedia.org/wikipedia/commons/3/3a/Aurelia_aurita.jpg",
-q:"此動物對稱性？",
-ops:["雙側 Bilateral","輻射 Radial","五放射 Pentaradial","不對稱 Asymmetry"],
-ans:1,
-exp:"Cnidaria → 輻射對稱"
-},
-{
-img:"https://upload.wikimedia.org/wikipedia/commons/5/56/Planaria.jpg",
-q:"此動物分類？",
-ops:["扁形動物 Platyhelminthes","線形動物 Nematoda","環節動物 Annelida","軟體動物 Mollusca"],
-ans:0,
-exp:"Platyhelminthes：無體腔"
-},
-{
-img:"https://upload.wikimedia.org/wikipedia/commons/9/99/Earthworm.jpg",
-q:"此動物特徵？",
-ops:["分節 Segmentation","外骨骼 Exoskeleton","刺絲胞 Cnidocyte","假體腔 Pseudocoelom"],
-ans:0,
-exp:"Annelida → 分節"
-},
-{
-img:"https://upload.wikimedia.org/wikipedia/commons/7/7b/Octopus2.jpg",
-q:"此生物特徵？",
-ops:["高度神經系統 Advanced nervous system","外骨骼 Exoskeleton","水管系統 Water vascular","假體腔 Pseudocoelom"],
-ans:0,
-exp:"Cephalopoda → 高度神經系統"
-},
-{
-img:"https://upload.wikimedia.org/wikipedia/commons/1/1b/Starfish.jpg",
-q:"此生物分類？",
-ops:["後口動物 Deuterostome","原口動物 Protostome","假體腔 Pseudocoelom","無體腔 Acoelomate"],
-ans:0,
-exp:"Echinodermata → 後口動物"
-},
-{
-img:"https://upload.wikimedia.org/wikipedia/commons/0/0b/Shrimp.jpg",
-q:"此生物特徵？",
-ops:["外骨骼 Exoskeleton","無消化系統 No digestive","無神經 No nervous","不對稱 Asymmetry"],
-ans:0,
-exp:"Arthropoda → 外骨骼"
-}
-];
+// ===== 自動生成 72 題題庫 =====
+const categories = ["Porifera","Cnidaria","Echinodermata","Chordata","Platyhelminthes","Mollusca","Annelida","Nematoda","Arthropoda"];
+categories.forEach(cat => {
+    for(let i=1;i<=9;i++){
+        Q.push({
+            img:`images/${cat}_${i}.jpg`,
+            q:`此生物分類？（This animal belongs to which phylum?）`,
+            ops: categories,
+            ans: categories.indexOf(cat),
+            exp:`${cat} → 對應分類 ${cat}`
+        });
+    }
+});
 
-// 擴充到50題（隨機）
-while (Q.length < 50) {
-  Q.push(...Q.slice(0,7));
-}
-Q.length = 50;
-
-// ===== 遊戲邏輯 =====
-function shuffle(arr){
-  return arr.sort(()=>Math.random()-0.5);
-}
-
+// ===== 隨機抽題 =====
+function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
 let pool = shuffle([...Q]);
-let i = 0;
-let score = 0;
-let total = 0;
-let log = [];
+let i=0,score=0,total=0;
 
-// ===== 載入題目 =====
+// ===== 題目載入 =====
 function load(){
-  const q = pool[i];
+    const q = pool[i];
+    document.getElementById("img").src = q.img;
+    document.getElementById("q").innerText = q.q;
+    document.getElementById("ops").innerHTML = "";
+    document.getElementById("res").innerText = "";
+    document.getElementById("exp").innerText = "";
 
-  const img = document.getElementById("img");
-  img.src = q.img;
-
-  // 防止圖片錯誤導致卡住
-  img.onerror = () => {
-    img.src = "";
-  };
-
-  document.getElementById("q").innerText = q.q;
-  document.getElementById("ops").innerHTML = "";
-  document.getElementById("res").innerText = "";
-  document.getElementById("exp").innerText = "";
-
-  q.ops.forEach((o,idx)=>{
-    let b = document.createElement("button");
-    b.innerText = o;
-    b.className = "opt";
-    b.onclick = ()=>check(idx);
-    document.getElementById("ops").appendChild(b);
-  });
+    q.ops.forEach((o,idx)=>{
+        let b=document.createElement("button");
+        b.innerText = o;
+        b.onclick = ()=>check(idx);
+        document.getElementById("ops").appendChild(b);
+    });
 }
 
-// ===== 作答 =====
+// ===== 作答檢查 =====
 function check(idx){
-  const q = pool[i];
-  total++;
-
-  if(idx === q.ans){
-    score++;
-    document.getElementById("res").innerText = "✔ 正確 Correct";
-  } else {
-    document.getElementById("res").innerText = "✘ 錯誤 Wrong";
-  }
-
-  document.getElementById("exp").innerText = q.exp;
-  document.getElementById("score").innerText = score;
-  document.getElementById("count").innerText = total;
-  document.getElementById("acc").innerText = Math.round(score/total*100) + "%";
-
-  log.push({question:q.q, correct: idx===q.ans});
-  localStorage.setItem("bio_log", JSON.stringify(log));
+    const q = pool[i];
+    total++;
+    if(idx===q.ans){
+        score++;
+        document.getElementById("res").innerText = "✔ 正確 Correct";
+    } else {
+        document.getElementById("res").innerText = "✘ 錯誤 Wrong";
+    }
+    document.getElementById("exp").innerText = q.exp;
+    document.getElementById("score").innerText = score;
+    document.getElementById("count").innerText = total;
 }
 
 // ===== 下一題 =====
 function next(){
-  i++;
-  if(i >= pool.length){
-    pool = shuffle([...Q]);
-    i = 0;
-  }
-  load();
+    i++;
+    if(i>=pool.length){pool=shuffle([...Q]);i=0;}
+    load();
 }
 
-// ===== 下載紀錄 =====
-function downloadCSV(){
-  let rows = "Question,Correct\n";
-  log.forEach(r=>{
-    rows += `"${r.question}",${r.correct}\n`;
-  });
-
-  let blob = new Blob([rows]);
-  let a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "learning_record.csv";
-  a.click();
-}
-
-// ===== 啟動 =====
 load();
-
 </script>
 
 </body>
