@@ -31,7 +31,7 @@ button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
 <script>
 // ===== Body Plan Features =====
 const bodyplan_features = {
-    "Porifera": {Sym:"No symmetry",Coelom:"Acoelomates",Germ:"Not belonging",Dev:"Not belonging"},
+    "Porifera": {Sym:"Asymmetry",Coelom:"Acoelomates",Germ:"Not belonging",Dev:"Not belonging"},
     "Cnidaria": {Sym:"Radial",Coelom:"Acoelomates",Germ:"Diploblasty",Dev:"Not belonging"},
     "Platyhelminthes": {Sym:"Bilateral",Coelom:"Acoelomates",Germ:"Triploblasty",Dev:"Protostome"},
     "Nematoda": {Sym:"Bilateral",Coelom:"Pseudocoelomates",Germ:"Triploblasty",Dev:"Protostome"},
@@ -41,19 +41,26 @@ const bodyplan_features = {
     "Echinodermata": {Sym:"Radial",Coelom:"Coelomates",Germ:"Triploblasty",Dev:"Deuterostome"}
 };
 
-// ===== Generate Question Pool =====
+// ===== Helper Functions =====
+function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
+
+// ===== Generate Question Pool Without Repeating Images =====
 let Q=[];
 const categories = Object.keys(bodyplan_features);
-categories.forEach(cat=>{
-    for(let i=1;i<=9;i++){
+
+// 每類群平均分配 3~4 題
+const counts = [3,3,3,3,3,3,3,4]; // 總共25題
+categories.forEach((cat,idx)=>{
+    let num = counts[idx];
+    let indices = shuffle([...Array(9).keys()].map(x=>x+1)).slice(0,num); // 選取 num 張不重複圖片
+    indices.forEach(i=>{
         Object.keys(bodyplan_features[cat]).forEach(fk=>{
             let correct = bodyplan_features[cat][fk];
             let all = [];
-            if(fk==="Sym") all=["Radial","Bilateral","No symmetry"];
+            if(fk==="Sym") all=["Radial","Bilateral","Asymmetry"];
             if(fk==="Coelom") all=["Coelomates","Pseudocoelomates","Acoelomates"];
             if(fk==="Germ") all=["Diploblasty","Triploblasty","Not belonging"];
             if(fk==="Dev") all=["Protostome","Deuterostome","Not belonging"];
-            // shuffle 3 choices
             let ops = shuffle(all);
             Q.push({
                 img:`images/${cat}_${i}.jpg`,
@@ -63,12 +70,11 @@ categories.forEach(cat=>{
                 exp:`Correct answer: ${correct}`
             });
         });
-    }
+    });
 });
 
-// ===== Random 25 Questions =====
-function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
-let pool = shuffle([...Q]).slice(0,25);
+// 隨機化 25 題
+let pool = shuffle(Q).slice(0,25);
 
 let i=0,score=0;
 let resultLog=[];
