@@ -3,22 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>無脊椎動物分類教學遊戲（72題真實圖片版）</title>
+<title>無脊椎動物分類期中考練習（50 題版）</title>
 <style>
 body{font-family:Arial,sans-serif;background:#eef3f8;margin:0;}
 .wrap{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:16px;}
 img{max-width:100%;border-radius:12px;margin-bottom:10px;}
-button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:100%;}
+button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
 h2,h3{margin-bottom:10px;}
 #ops button{width:48%; display:inline-block;}
+#nextBtn{width:100%;margin-top:10px;}
 </style>
 </head>
 <body>
 
 <div class="wrap">
-<h2>無脊椎動物分類教學遊戲（中英對照 72 題）</h2>
-<p>分數：<span id="score">0</span> / 72</p>
-<p>答題進度：<span id="count">0</span> / 72</p>
+<h2>無脊椎動物分類期中考練習（50 題）</h2>
+<p>分數：<span id="score">0</span> / 100</p>
+<p>答題進度：<span id="count">0</span> / 50</p>
 
 <img id="img">
 <p id="q"></p>
@@ -26,31 +27,30 @@ h2,h3{margin-bottom:10px;}
 <p id="res" style="font-weight:bold;"></p>
 <p id="exp"></p>
 
-<button onclick="next()">下一題</button>
+<button id="nextBtn" onclick="next()" disabled>下一題</button>
 </div>
 
 <script>
-// ===== 真實圖片題庫 =====
-const Q = [];
+// ===== 題庫 =====
+const categories = ["Porifera","Cnidaria","Echinodermata","Platyhelminthes","Mollusca","Annelida","Nematoda","Arthropoda"];
+let Q=[];
 
-// ===== 自動生成 72 題題庫 =====
-const categories = ["Porifera","Cnidaria","Echinodermata","Chordata","Platyhelminthes","Mollusca","Annelida","Nematoda","Arthropoda"];
-categories.forEach(cat => {
+categories.forEach(cat=>{
     for(let i=1;i<=9;i++){
         Q.push({
             img:`images/${cat}_${i}.jpg`,
             q:`此生物分類？（This animal belongs to which phylum?）`,
-            ops: categories,
-            ans: categories.indexOf(cat),
+            ops:categories,
+            ans:categories.indexOf(cat),
             exp:`${cat} → 對應分類 ${cat}`
         });
     }
 });
 
-// ===== 隨機抽題 =====
+// ===== 隨機抽 50 題 =====
 function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
-let pool = shuffle([...Q]);
-let i=0,score=0,total=0;
+let pool = shuffle([...Q]).slice(0,50);
+let i=0,score=0;
 
 // ===== 題目載入 =====
 function load(){
@@ -60,6 +60,7 @@ function load(){
     document.getElementById("ops").innerHTML = "";
     document.getElementById("res").innerText = "";
     document.getElementById("exp").innerText = "";
+    document.getElementById("nextBtn").disabled = true;
 
     q.ops.forEach((o,idx)=>{
         let b=document.createElement("button");
@@ -67,30 +68,41 @@ function load(){
         b.onclick = ()=>check(idx);
         document.getElementById("ops").appendChild(b);
     });
+
+    document.getElementById("count").innerText = i+1;
 }
 
 // ===== 作答檢查 =====
 function check(idx){
     const q = pool[i];
-    total++;
     if(idx===q.ans){
-        score++;
+        score += 2; // 每題 2 分
         document.getElementById("res").innerText = "✔ 正確 Correct";
     } else {
         document.getElementById("res").innerText = "✘ 錯誤 Wrong";
     }
     document.getElementById("exp").innerText = q.exp;
     document.getElementById("score").innerText = score;
-    document.getElementById("count").innerText = total;
+    document.getElementById("nextBtn").disabled = false;
+
+    // 禁用選項避免重複點
+    document.querySelectorAll("#ops button").forEach(b=>b.disabled=true);
 }
 
 // ===== 下一題 =====
 function next(){
     i++;
-    if(i>=pool.length){pool=shuffle([...Q]);i=0;}
+    if(i>=pool.length){
+        alert(`測驗完成！\n你的最終分數：${score}/100`);
+        // 重置遊戲
+        i=0;
+        score=0;
+        pool = shuffle([...Q]).slice(0,50);
+    }
     load();
 }
 
+// 初始載入第一題
 load();
 </script>
 
