@@ -3,18 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Advanced Body Plan Quiz - Invertebrates</title>
+<title>Invertebrate Body Plan Quiz - Student Version</title>
 <style>
 body{font-family:Arial,sans-serif;background:#eef3f8;margin:0;}
 .wrap{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:16px;}
 img{max-width:100%;border-radius:12px;margin-bottom:10px;}
 button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
 #nextBtn{width:100%;margin-top:10px;}
+input{padding:5px;width:200px;margin-bottom:10px;}
 </style>
 </head>
 <body>
 <div class="wrap">
 <h2>Invertebrate Body Plan Quiz (3 Choices, 25 Questions)</h2>
+<p>Student ID: <input type="text" id="studentID" placeholder="Enter your Student ID"></p>
 <p>Score: <span id="score">0</span> / 100</p>
 <p>Question: <span id="count">0</span> / 25</p>
 
@@ -22,7 +24,6 @@ button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
 <p id="q">請根據圖片判斷其特徵？（Based on the image, identify its characteristics.）</p>
 <div id="ops"></div>
 <p id="res" style="font-weight:bold;"></p>
-<p id="exp"></p>
 
 <button id="nextBtn" onclick="next()" disabled>Next</button>
 <button id="exportCSV" onclick="exportCSV()">Export CSV (Teacher use)</button>
@@ -44,15 +45,13 @@ const bodyplan_features = {
 // ===== Helper Functions =====
 function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
 
-// ===== Generate Question Pool Without Repeating Images =====
+// ===== Generate Question Pool =====
 let Q=[];
 const categories = Object.keys(bodyplan_features);
-
-// 每類群平均分配 3~4 題
-const counts = [3,3,3,3,3,3,3,4]; // 總共25題
+const counts = [3,3,3,3,3,3,3,4]; // total 25 questions
 categories.forEach((cat,idx)=>{
     let num = counts[idx];
-    let indices = shuffle([...Array(9).keys()].map(x=>x+1)).slice(0,num); // 選取 num 張不重複圖片
+    let indices = shuffle([...Array(9).keys()].map(x=>x+1)).slice(0,num);
     indices.forEach(i=>{
         Object.keys(bodyplan_features[cat]).forEach(fk=>{
             let correct = bodyplan_features[cat][fk];
@@ -67,13 +66,14 @@ categories.forEach((cat,idx)=>{
                 q:"請根據圖片判斷其特徵？（Based on the image, identify its characteristics.）",
                 ops: ops,
                 ans: ops.indexOf(correct),
+                type: fk,
                 exp:`Correct answer: ${correct}`
             });
         });
     });
 });
 
-// 隨機化 25 題
+// 隨機選 25 題
 let pool = shuffle(Q).slice(0,25);
 
 let i=0,score=0;
@@ -86,7 +86,6 @@ function load(){
     document.getElementById("q").innerText = q.q;
     document.getElementById("ops").innerHTML = "";
     document.getElementById("res").innerText = "";
-    document.getElementById("exp").innerText = "";
     document.getElementById("nextBtn").disabled = true;
 
     q.ops.forEach((o,idx)=>{
@@ -104,13 +103,12 @@ function check(idx){
     let correct = idx===q.ans;
     if(correct) score +=4;
     document.getElementById("res").innerText = correct ? "✔ Correct" : "✘ Wrong";
-    document.getElementById("exp").innerText = q.exp;
     document.getElementById("score").innerText = score;
-    document.getElementById("nextBtn").disabled = false;
 
-    resultLog.push({Question:i+1,Image:q.img,Answer:q.ops[q.ans],Selected:q.ops[idx],Correct:correct,Score:correct?4:0});
+    resultLog.push({Question:i+1,Image:q.img,Answer:q.ops[q.ans],Selected:q.ops[idx],Correct:correct,Score:correct?4:0,Type:q.type});
 
     document.querySelectorAll("#ops button").forEach(b=>b.disabled=true);
+    document.getElementById("nextBtn").disabled=false;
 }
 
 // ===== Next Question =====
@@ -118,20 +116,28 @@ function next(){
     i++;
     if(i>=pool.length){
         alert(`Quiz completed!\nYour final score: ${score}/100`);
+        // reset for reattempt
+        i=0;
+        score=0;
+        resultLog=[];
+        pool = shuffle(Q).slice(0,25);
+        load();
     } else load();
 }
 
 // ===== Export CSV =====
 function exportCSV(){
+    const student = document.getElementById("studentID").value || "Unknown";
     if(resultLog.length===0){alert("No answers yet"); return;}
-    let csv="Question,Image,Correct Answer,Selected,Correct,Score\n";
+    let now = new Date().toISOString();
+    let csv="StudentID,DateTime,TotalScore,Question,Image,Correct Answer,Selected,Correct,Score,Type\n";
     resultLog.forEach(r=>{
-        csv+=`${r.Question},${r.Image},${r.Answer},${r.Selected},${r.Correct},${r.Score}\n`;
+        csv+=`${student},${now},${score},${r.Question},${r.Image},${r.Answer},${r.Selected},${r.Correct},${r.Score},${r.Type}\n`;
     });
     let blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
     let link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "bodyplan_quiz_results.csv";
+    link.download = `bodyplan_quiz_${student}_${now}.csv`;
     link.click();
 }
 
