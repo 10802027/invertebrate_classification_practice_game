@@ -4,22 +4,50 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Invertebrate Body Plan Quiz - Student Version</title>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
 <style>
 body{font-family:Arial,sans-serif;background:#eef3f8;margin:0;}
 .wrap{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:16px;}
 img{max-width:100%;border-radius:12px;margin-bottom:10px;}
 button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
 #nextBtn{width:100%;margin-top:10px;}
-input{padding:5px;width:200px;margin-bottom:10px;}
+#downloadBtn{width:100%;margin-top:10px;background:#4CAF50;color:white;}
 </style>
 </head>
+
 <body>
 <div class="wrap">
-<h2>無脊椎動物特徵小考（三選一 25 題）</h2>
-<p>總分計算：<span id="score">0</span> / 100</p>
-<p>答題進度：<span id="count">0</span> / 25</p>
-<p>Student ID: <input type="text" id="studentID" placeholder="Enter your Student ID"></p>
 
+<h2>無脊椎動物特徵小考（三選一 25 題）</h2>
+<p>總分：<span id="score">0</span> / 100</p>
+<p>進度：<span id="count">0</span> / 25</p>
+
+<!-- 🔹 Student + 成績框 -->
+<div style="display:flex; justify-content:space-between; align-items:center;">
+
+<div>
+Student ID:
+<input type="text" id="studentID" placeholder="Enter your Student ID">
+</div>
+
+<div id="scoreBox" style="
+border:3px solid #4CAF50;
+padding:10px;
+border-radius:10px;
+background:#fff;
+box-shadow:0 0 10px rgba(0,0,0,0.2);
+font-weight:bold;
+min-width:200px;
+">
+Score Summary<br>
+ID: -<br>
+Latest: 0<br>
+Best: 0
+</div>
+
+</div>
 
 <img id="img">
 <p id="q">請根據圖片判斷其特徵？（Based on the image, identify its characteristics.）</p>
@@ -27,9 +55,12 @@ input{padding:5px;width:200px;margin-bottom:10px;}
 <p id="res" style="font-weight:bold;"></p>
 
 <button id="nextBtn" onclick="next()" disabled>Next</button>
+<button id="downloadBtn" onclick="downloadPNG()">下載成績證明 PNG</button>
+
 </div>
 
 <script>
+
 // ===== Body Plan Features =====
 const bodyplan_features = {
     "Porifera": {Sym:"Asymmetry",Coelom:"Acoelomates",Germ:"Not belonging",Dev:"Not belonging"},
@@ -42,48 +73,58 @@ const bodyplan_features = {
     "Echinodermata": {Sym:"Bilateral",Coelom:"Coelomates",Germ:"Triploblasty",Dev:"Deuterostome"}
 };
 
-// ===== Helper Functions =====
 function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
 
-// ===== Generate Question Pool =====
+// ===== 題庫 =====
 let Q=[];
 const categories = Object.keys(bodyplan_features);
-const counts = [3,3,3,3,3,3,3,4]; // total 25 questions
+const counts = [3,3,3,3,3,3,3,4];
+
 categories.forEach((cat,idx)=>{
     let num = counts[idx];
     let indices = shuffle([...Array(9).keys()].map(x=>x+1)).slice(0,num);
+
     indices.forEach(i=>{
         Object.keys(bodyplan_features[cat]).forEach(fk=>{
             let correct = bodyplan_features[cat][fk];
             let all = [];
+
             if(fk==="Sym") all=["Radial","Bilateral","Asymmetry"];
             if(fk==="Coelom") all=["Coelomates","Pseudocoelomates","Acoelomates"];
             if(fk==="Germ") all=["Diploblasty","Triploblasty","Not belonging"];
             if(fk==="Dev") all=["Protostome","Deuterostome","Not belonging"];
+
             let ops = shuffle(all);
+
             Q.push({
                 img:`images/${cat}_${i}.jpg`,
-                q:"請根據圖片判斷其特徵？（Based on the image, identify its characteristics.）",
                 ops: ops,
-                ans: ops.indexOf(correct),
-                type: fk,
-                exp:`Correct answer: ${correct}`
+                ans: ops.indexOf(correct)
             });
         });
     });
 });
 
-// 隨機選 25 題
+// ===== 初始化 =====
 let pool = shuffle(Q).slice(0,25);
-
 let i=0,score=0;
-let resultLog=[];
+let bestScore=0;
 
-// ===== Load Question =====
+// ===== 更新成績框 =====
+function updateScoreBox(latest,best){
+    const student = document.getElementById("studentID").value || "-";
+    document.getElementById("scoreBox").innerHTML = `
+        Score Summary<br>
+        ID: ${student}<br>
+        Latest: ${latest}<br>
+        Best: ${best}
+    `;
+}
+
+// ===== 載入題目 =====
 function load(){
     const q = pool[i];
     document.getElementById("img").src = q.img;
-    document.getElementById("q").innerText = q.q;
     document.getElementById("ops").innerHTML = "";
     document.getElementById("res").innerText = "";
     document.getElementById("nextBtn").disabled = true;
@@ -94,40 +135,92 @@ function load(){
         b.onclick = ()=>check(idx);
         document.getElementById("ops").appendChild(b);
     });
+
     document.getElementById("count").innerText = i+1;
 }
 
-// ===== Check Answer =====
+// ===== 作答 =====
 function check(idx){
     const q = pool[i];
-    let correct = idx===q.ans;
-    if(correct) score +=4;
-    document.getElementById("res").innerText = correct ? "✔ Correct" : "✘ Wrong";
+    if(idx===q.ans){
+        score +=4;
+        document.getElementById("res").innerText="✔ Correct";
+    }else{
+        document.getElementById("res").innerText="✘ Wrong";
+    }
     document.getElementById("score").innerText = score;
-
-    resultLog.push({Question:i+1,Image:q.img,Answer:q.ops[q.ans],Selected:q.ops[idx],Correct:correct,Score:correct?4:0,Type:q.type});
 
     document.querySelectorAll("#ops button").forEach(b=>b.disabled=true);
     document.getElementById("nextBtn").disabled=false;
 }
 
-// ===== Next Question =====
+// ===== 下一題 =====
 function next(){
     i++;
+
     if(i>=pool.length){
-        alert(`Quiz completed!\nYour final score: ${score}/100`);
-        // reset for reattempt
+
+        const student = document.getElementById("studentID").value.trim();
+
+        let prev = 0;
+        if(student){
+            prev = parseInt(localStorage.getItem(student+"_advBest") || 0);
+        }
+
+        let finalBest = prev;
+
+        if(student){
+            if(score > prev){
+                let save = confirm(`New high score ${score}! Replace previous (${prev})?`);
+                if(save){
+                    localStorage.setItem(student+"_advBest",score);
+                    finalBest = score;
+                }
+            } else {
+                alert(`Score ${score} did not exceed best ${prev}`);
+                finalBest = prev;
+            }
+        }
+
+        updateScoreBox(score, finalBest);
+
+        alert(`Quiz completed!\nScore: ${score}/100`);
+
         i=0;
         score=0;
-        resultLog=[];
         pool = shuffle(Q).slice(0,25);
-        load();
-    } else load();
+    }
+
+    load();
 }
 
+// ===== 下載 PNG（用最佳分數命名）=====
+function downloadPNG(){
 
-// 初始載入
+    const student = document.getElementById("studentID").value.trim();
+    if(!student){
+        alert("Please enter Student ID");
+        return;
+    }
+
+    let best = localStorage.getItem(student+"_advBest");
+    if(!best){
+        alert("No record yet");
+        return;
+    }
+
+    html2canvas(document.getElementById("scoreBox")).then(canvas=>{
+        let link = document.createElement("a");
+        link.download = `${student}_${best}.png`; // ⭐ 關鍵：用最佳分數
+        link.href = canvas.toDataURL();
+        link.click();
+    });
+}
+
+// 初始化
+updateScoreBox(0,0);
 load();
+
 </script>
 </body>
 </html>
