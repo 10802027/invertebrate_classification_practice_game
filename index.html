@@ -12,9 +12,11 @@ body{font-family:Arial,sans-serif;background:#eef3f8;margin:0;}
 .wrap{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:16px;}
 img{max-width:100%;border-radius:12px;margin-bottom:10px;}
 button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
+#ops button{width:48%;}
 #nextBtn,#downloadBtn{width:100%;margin-top:10px;}
 #downloadBtn{background:#4CAF50;color:white;}
 input{padding:6px;width:200px;}
+.error{color:red;}
 </style>
 </head>
 
@@ -36,13 +38,13 @@ Score Summary<br>ID: -<br>Latest: 0<br>Best: 0
 </div>
 </div>
 
-<img id="img">
+<img id="img" onerror="this.src='';this.alt='⚠ 圖片載入失敗';">
 <p id="q"></p>
 <div id="ops"></div>
 <p id="res"></p>
 
-<button id="nextBtn" onclick="next()" disabled>下一題</button>
-<button id="downloadBtn" onclick="downloadCertificate()">下載成績單 PNG</button>
+<button id="nextBtn">下一題</button>
+<button id="downloadBtn">下載成績單 PNG</button>
 
 </div>
 
@@ -57,104 +59,147 @@ Score Summary<br>ID: -<br>Latest: 0<br>Best: 0
 
 <script>
 
-// 🔥 換成你的 Apps Script URL
+// ===== Google Script URL =====
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRgnXDsT6t9WJMNpJfQTZ7ZoC9rDwbMndHut_8gE56LYXkd_Fp3MeWHvrHGPE-rXfmMQ/exec";
+
+// ===== DOM =====
+const imgEl = document.getElementById("img");
+const qEl = document.getElementById("q");
+const opsEl = document.getElementById("ops");
+const resEl = document.getElementById("res");
+const scoreEl = document.getElementById("score");
+const countEl = document.getElementById("count");
+const nextBtn = document.getElementById("nextBtn");
+const studentInput = document.getElementById("studentID");
 
 // ===== 題庫 =====
 const categories = ["Porifera","Cnidaria","Echinodermata","Platyhelminthes","Mollusca","Annelida","Nematoda","Arthropoda"];
 let Q=[];
+
 categories.forEach(cat=>{
-for(let i=1;i<=9;i++){
-Q.push({img:`images/${cat}_${i}.jpg`,q:"此生物分類？",ops:categories,ans:categories.indexOf(cat)});
-}});
+    for(let i=1;i<=9;i++){
+        Q.push({
+            img:`images/${cat}_${i}.jpg`,
+            q:"此生物分類？（This animal belongs to which phylum?）",
+            ops:categories,
+            ans:categories.indexOf(cat)
+        });
+    }
+});
 
-function shuffle(a){return a.sort(()=>Math.random()-0.5);}
+function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
 
+// ===== 初始化 =====
 let pool = shuffle([...Q]).slice(0,50);
 let i=0,score=0;
 
+// ===== 更新顯示 =====
 function updateScoreBox(latest,best){
-let id=document.getElementById("studentID").value||"-";
-document.getElementById("scoreBox").innerHTML=`Score Summary<br>ID:${id}<br>Latest:${latest}<br>Best:${best}`;
+    let id = studentInput.value || "-";
+    document.getElementById("scoreBox").innerHTML =
+        `Score Summary<br>ID:${id}<br>Latest:${latest}<br>Best:${best}`;
 }
 
+// ===== 檢查ID =====
 function checkID(){
-let id=document.getElementById("studentID").value.trim();
-if(!id){alert("請輸入 Student ID");return false;}
-return true;
+    if(!studentInput.value.trim()){
+        alert("⚠ 請先輸入 Student ID！");
+        return false;
+    }
+    return true;
 }
 
+// ===== 載入題目 =====
 function load(){
-let q=pool[i];
-img.src=q.img;
-qEl.innerText=q.q;
-ops.innerHTML="";
-res.innerText="";
-nextBtn.disabled=true;
+    let q = pool[i];
 
-q.ops.forEach((o,idx)=>{
-let b=document.createElement("button");
-b.innerText=o;
-b.onclick=()=>{if(checkID())check(idx)};
-ops.appendChild(b);
-});
+    imgEl.src = q.img;
+    qEl.innerText = q.q;
 
-count.innerText=i+1;
+    opsEl.innerHTML = "";
+    resEl.innerText = "";
+    nextBtn.disabled = true;
+
+    q.ops.forEach((o, idx)=>{
+        let btn = document.createElement("button");
+        btn.innerText = o;
+        btn.onclick = ()=>{
+            if(checkID()) check(idx);
+        };
+        opsEl.appendChild(btn);
+    });
+
+    countEl.innerText = i+1;
 }
 
+// ===== 作答 =====
 function check(idx){
-let q=pool[i];
-if(idx===q.ans){score+=2;res.innerText="✔";}
-else{res.innerText="✘";}
-scoreEl.innerText=score;
-document.querySelectorAll("#ops button").forEach(b=>b.disabled=true);
-nextBtn.disabled=false;
+    let q = pool[i];
+
+    if(idx === q.ans){
+        score += 2;
+        resEl.innerText = "✔ Correct";
+    }else{
+        resEl.innerText = "✘ Wrong";
+    }
+
+    scoreEl.innerText = score;
+    document.querySelectorAll("#ops button").forEach(b=>b.disabled=true);
+    nextBtn.disabled = false;
 }
 
-function next(){
-i++;
-if(i>=50){
+// ===== 下一題 =====
+nextBtn.onclick = function(){
+    i++;
 
-let id=document.getElementById("studentID").value.trim();
-let prev=parseInt(localStorage.getItem(id+"_best")||0);
-let best = score>prev?score:prev;
+    if(i >= 50){
 
-localStorage.setItem(id+"_best",best);
-updateScoreBox(score,best);
+        let id = studentInput.value.trim();
+        let prev = parseInt(localStorage.getItem(id+"_best") || 0);
+        let best = score > prev ? score : prev;
 
-// 🔥 自動上傳
-fetch(SCRIPT_URL,{
-method:"POST",
-body:JSON.stringify({studentID:id,latest:score,best:best})
-});
+        localStorage.setItem(id+"_best", best);
+        updateScoreBox(score, best);
 
-alert(`完成！分數:${score}`);
+        // ⭐ 上傳
+        fetch(SCRIPT_URL,{
+            method:"POST",
+            body:JSON.stringify({studentID:id,latest:score,best:best})
+        }).catch(()=>{});
 
-i=0;score=0;pool=shuffle([...Q]).slice(0,50);
-}
-load();
-}
+        alert(`測驗完成！分數：${score}/100`);
+
+        i=0; score=0;
+        pool = shuffle([...Q]).slice(0,50);
+    }
+
+    load();
+};
 
 // ===== 下載證書 =====
-function downloadCertificate(){
-let id=studentID.value.trim();
-let best=parseInt(localStorage.getItem(id+"_best"));
-if(!id||!best){alert("無資料");return;}
+document.getElementById("downloadBtn").onclick = function(){
 
-let date=new Date().toISOString().split("T")[0];
-certID.innerText="Student ID: "+id;
-certScore.innerText="Score: "+best+"/100";
-certDate.innerText="Date: "+date;
+    let id = studentInput.value.trim();
+    if(!id){ alert("請輸入 Student ID"); return; }
 
-html2canvas(certificate).then(c=>{
-let a=document.createElement("a");
-a.download=`${id}_${best}_certificate.png`;
-a.href=c.toDataURL();
-a.click();
-});
-}
+    let best = parseInt(localStorage.getItem(id+"_best"));
+    if(isNaN(best)){ alert("尚未完成測驗"); return; }
 
-// init
+    let date = new Date().toISOString().split("T")[0];
+
+    document.getElementById("certID").innerText = "Student ID: " + id;
+    document.getElementById("certScore").innerText = "Score: " + best + " / 100";
+    document.getElementById("certDate").innerText = "Date: " + date;
+
+    html2canvas(document.getElementById("certificate")).then(canvas=>{
+        let link = document.createElement("a");
+        link.download = `${id}_${best}_certificate.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    });
+};
+
+// ===== 啟動 =====
 updateScoreBox(0,0);
 load();
 
