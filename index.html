@@ -12,9 +12,8 @@ body{font-family:Arial,sans-serif;background:#eef3f8;margin:0;}
 .wrap{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:16px;}
 img{max-width:100%;border-radius:12px;margin-bottom:10px;}
 button{margin:5px;padding:10px;border-radius:8px;cursor:pointer;width:48%;}
-#ops button{width:48%;}
-#nextBtn{width:100%;margin-top:10px;}
-#downloadBtn{width:100%;margin-top:10px;background:#4CAF50;color:white;}
+#nextBtn,#downloadBtn{width:100%;margin-top:10px;}
+#downloadBtn{background:#4CAF50;color:white;}
 input{padding:6px;width:200px;}
 </style>
 </head>
@@ -26,23 +25,14 @@ input{padding:6px;width:200px;}
 <p>總分：<span id="score">0</span> / 100</p>
 <p>進度：<span id="count">0</span> / 50</p>
 
-<div style="display:flex; justify-content:space-between; align-items:center;">
+<div style="display:flex; justify-content:space-between;">
 <div>
 Student ID:
 <input type="text" id="studentID" placeholder="Enter your Student ID">
 </div>
 
-<div id="scoreBox" style="
-border:3px solid #4CAF50;
-padding:10px;
-border-radius:10px;
-background:#fff;
-font-weight:bold;
-min-width:200px;">
-Score Summary<br>
-ID: -<br>
-Latest: 0<br>
-Best: 0
+<div id="scoreBox" style="border:3px solid #4CAF50;padding:10px;border-radius:10px;background:#fff;font-weight:bold;">
+Score Summary<br>ID: -<br>Latest: 0<br>Best: 0
 </div>
 </div>
 
@@ -50,23 +40,14 @@ Best: 0
 <p id="q"></p>
 <div id="ops"></div>
 <p id="res"></p>
-<p id="exp"></p>
 
 <button id="nextBtn" onclick="next()" disabled>下一題</button>
-<button id="downloadBtn" onclick="downloadCertificate()">下載正式成績單 PNG</button>
+<button id="downloadBtn" onclick="downloadCertificate()">下載成績單 PNG</button>
 
 </div>
 
-<!-- 🔥 成績證書（隱藏區） -->
-<div id="certificate" style="
-position:absolute;
-left:-9999px;
-width:600px;
-padding:30px;
-background:white;
-border:3px solid black;
-font-family:Arial;
-">
+<!-- 證書 -->
+<div id="certificate" style="position:absolute;left:-9999px;width:600px;padding:30px;background:white;border:3px solid black;">
 <h2 style="text-align:center;">Invertebrate Biology Quiz Certificate</h2>
 <hr>
 <p id="certID"></p>
@@ -76,144 +57,104 @@ font-family:Arial;
 
 <script>
 
+// 🔥 換成你的 Apps Script URL
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz5t3_gQKDsQxmg0K9M54wUe8fE6DGH5_Aphhywc9_aH2mnOC3XycjaHusT6VIE5KNvMw/exec";
+
 // ===== 題庫 =====
 const categories = ["Porifera","Cnidaria","Echinodermata","Platyhelminthes","Mollusca","Annelida","Nematoda","Arthropoda"];
 let Q=[];
 categories.forEach(cat=>{
-    for(let i=1;i<=9;i++){
-        Q.push({
-            img:`images/${cat}_${i}.jpg`,
-            q:`此生物分類？（This animal belongs to which phylum?）`,
-            ops:categories,
-            ans:categories.indexOf(cat)
-        });
-    }
-});
+for(let i=1;i<=9;i++){
+Q.push({img:`images/${cat}_${i}.jpg`,q:"此生物分類？",ops:categories,ans:categories.indexOf(cat)});
+}});
 
-// ===== 工具 =====
-function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
+function shuffle(a){return a.sort(()=>Math.random()-0.5);}
 
-// ===== 初始化 =====
 let pool = shuffle([...Q]).slice(0,50);
 let i=0,score=0;
 
-// ===== 更新顯示 =====
 function updateScoreBox(latest,best){
-    const student = document.getElementById("studentID").value || "-";
-    document.getElementById("scoreBox").innerHTML = `
-        Score Summary<br>
-        ID: ${student}<br>
-        Latest: ${latest}<br>
-        Best: ${best}
-    `;
+let id=document.getElementById("studentID").value||"-";
+document.getElementById("scoreBox").innerHTML=`Score Summary<br>ID:${id}<br>Latest:${latest}<br>Best:${best}`;
 }
 
-// ===== 檢查是否有ID =====
 function checkID(){
-    const student = document.getElementById("studentID").value.trim();
-    if(!student){
-        alert("⚠ 請先輸入 Student ID 才能作答！");
-        return false;
-    }
-    return true;
+let id=document.getElementById("studentID").value.trim();
+if(!id){alert("請輸入 Student ID");return false;}
+return true;
 }
 
-// ===== 載入題目 =====
 function load(){
-    const q = pool[i];
-    document.getElementById("img").src = q.img;
-    document.getElementById("q").innerText = q.q;
-    document.getElementById("ops").innerHTML = "";
-    document.getElementById("res").innerText = "";
-    document.getElementById("exp").innerText = "";
-    document.getElementById("nextBtn").disabled = true;
+let q=pool[i];
+img.src=q.img;
+qEl.innerText=q.q;
+ops.innerHTML="";
+res.innerText="";
+nextBtn.disabled=true;
 
-    q.ops.forEach((o,idx)=>{
-        let b=document.createElement("button");
-        b.innerText = o;
-        b.onclick = ()=>{
-            if(checkID()) check(idx);
-        };
-        document.getElementById("ops").appendChild(b);
-    });
+q.ops.forEach((o,idx)=>{
+let b=document.createElement("button");
+b.innerText=o;
+b.onclick=()=>{if(checkID())check(idx)};
+ops.appendChild(b);
+});
 
-    document.getElementById("count").innerText = i+1;
+count.innerText=i+1;
 }
 
-// ===== 作答 =====
 function check(idx){
-    const q = pool[i];
-    if(idx===q.ans){
-        score += 2;
-        document.getElementById("res").innerText="✔ Correct";
-    }else{
-        document.getElementById("res").innerText="✘ Wrong";
-    }
-    document.getElementById("score").innerText = score;
-
-    document.querySelectorAll("#ops button").forEach(b=>b.disabled=true);
-    document.getElementById("nextBtn").disabled=false;
+let q=pool[i];
+if(idx===q.ans){score+=2;res.innerText="✔";}
+else{res.innerText="✘";}
+scoreEl.innerText=score;
+document.querySelectorAll("#ops button").forEach(b=>b.disabled=true);
+nextBtn.disabled=false;
 }
 
-// ===== 下一題 =====
 function next(){
-    i++;
-    if(i>=pool.length){
+i++;
+if(i>=50){
 
-        const student = document.getElementById("studentID").value.trim();
-        let prev = parseInt(localStorage.getItem(student+"_best")||0);
+let id=document.getElementById("studentID").value.trim();
+let prev=parseInt(localStorage.getItem(id+"_best")||0);
+let best = score>prev?score:prev;
 
-        let finalBest = prev;
+localStorage.setItem(id+"_best",best);
+updateScoreBox(score,best);
 
-        if(score > prev){
-            if(confirm(`新高分 ${score} 分！是否覆蓋舊成績 ${prev}?`)){
-                localStorage.setItem(student+"_best",score);
-                finalBest = score;
-            }
-        } else {
-            finalBest = prev;
-        }
+// 🔥 自動上傳
+fetch(SCRIPT_URL,{
+method:"POST",
+body:JSON.stringify({studentID:id,latest:score,best:best})
+});
 
-        updateScoreBox(score, finalBest);
+alert(`完成！分數:${score}`);
 
-        alert(`測驗完成！\n分數：${score}/100`);
-
-        i=0; score=0;
-        pool = shuffle([...Q]).slice(0,50);
-    }
-    load();
+i=0;score=0;pool=shuffle([...Q]).slice(0,50);
+}
+load();
 }
 
-// ===== 下載正式證書 =====
+// ===== 下載證書 =====
 function downloadCertificate(){
+let id=studentID.value.trim();
+let best=parseInt(localStorage.getItem(id+"_best"));
+if(!id||!best){alert("無資料");return;}
 
-    const student = document.getElementById("studentID").value.trim();
-    if(!student){
-        alert("請輸入 Student ID");
-        return;
-    }
+let date=new Date().toISOString().split("T")[0];
+certID.innerText="Student ID: "+id;
+certScore.innerText="Score: "+best+"/100";
+certDate.innerText="Date: "+date;
 
-    let best = localStorage.getItem(student+"_best");
-    if(!best){
-        alert("尚未有成績紀錄");
-        return;
-    }
-
-    let today = new Date().toISOString().split("T")[0];
-
-    document.getElementById("certID").innerText = "Student ID: " + student;
-    document.getElementById("certScore").innerText = "Score: " + best + " / 100";
-    document.getElementById("certDate").innerText = "Date: " + today;
-
-    html2canvas(document.getElementById("certificate")).then(canvas=>{
-        let link = document.createElement("a");
-        link.download = `${student}_${best}_certificate.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-    });
+html2canvas(certificate).then(c=>{
+let a=document.createElement("a");
+a.download=`${id}_${best}_certificate.png`;
+a.href=c.toDataURL();
+a.click();
+});
 }
 
-// 初始化
+// init
 updateScoreBox(0,0);
 load();
 
